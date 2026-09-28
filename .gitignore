@@ -1,0 +1,37 @@
+# MPV Binaries and Bridge Files (installed/synchronized automatically during setup)
+mpv/*.exe
+mpv/*.com
+mpv/*.dll
+mpv/*.bat
+mpv/portable.vs
+mpv/python312._pth
+mpv/installer/
+mpv/doc/
+
+# CUDA and TensorRT Heavy Runtimes (~3 GB downloaded during setup)
+vs/vs-plugins/vsmlrt-cuda/
+
+# Machine-Specific Compiled TensorRT Engine Caches & Manifests
+vs/vs-plugins/models/rife_v2/engines/
+mpv/portable_config/engines_manifest.json
+mpv/portable_config/.hardware_configured
+mpv/portable_config/volume.state
+mpv/portable_config/cache/
+mpv/portable_config/watch_later/
+
+# Temporary, Archives, Logs and Python Caches
+*.7z
+*.7z.*
+*.tmp
+*.part
+*.log
+__pycache__/
+*.pyc
+*.pyo
+
+# OS & IDE Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
