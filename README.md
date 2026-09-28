@@ -14,6 +14,7 @@ A fully portable, zero-dependency multimedia player integrating **MPV**, an embe
 > This project is currently tailored exclusively for the following environment:
 > * **Operating System:** Windows 10 / 11 (64-bit).
 > * **Graphics Card:** **NVIDIA RTX GPUs only** (RTX 2000, 3000, 4000, 5000 series or newer — **xx70 tier and above** such as RTX 3070 / 4070 / 5070 recommended for an optimal, stutter-free experience). Legacy GTX series cards are unsupported due to the lack of dedicated Tensor Cores.
+> * **Supported Resolution:** **1080p (Full HD) and below only**. Ultra-high resolutions like **2K (1440p) and 4K (2160p)** are automatically bypassed (played natively without AI interpolation) to prevent VRAM saturation and severe rendering bottlenecks.
 > * **Display Driver:** NVIDIA Driver version **580.00 or higher** for CUDA 13 and TensorRT 10 runtime support (automatically verified by `setup.bat`).
 
 ---
@@ -55,6 +56,7 @@ A fully portable, zero-dependency multimedia player integrating **MPV**, an embe
 ### 2. In-Screen Settings Sidebar:
 Open the floating settings panel by clicking the **Settings icon (⚙️)** in the ModernZ bottom bar. It allows live tuning of all playback parameters without pausing playback:
 * **RIFE Engine & Hardware Streams:** Select active RIFE model, frame rate multiplier (2x to 6x), GPU execution streams, and 4K/UHD bypass behavior.
+  > 💡 **Important Multiplier Tip:** It is strongly recommended **not to exceed 3x**. Setting higher multipliers (such as 4x or 6x) introduces immense computational load that even high-end graphics cards cannot process smoothly in real-time, which will cause severe stuttering and frame drops instead of smooth motion.
 * **Subtitles & Typography:**
   * Pre-loaded with high-grade multilingual and Arabic fonts in `mpv/portable_config/fonts/` (XB Zar, Cairo, Roboto, OpenSans, etc.).
   * **Custom Font Auto-Detection:** Drop any `.ttf` or `.otf` font file into the `fonts/` directory, and it will immediately appear in the sidebar options for live font, size, color, outline, and position adjustments.
