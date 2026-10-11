@@ -25,9 +25,57 @@ NVINFER_DLL = os.path.join(VSMLRT_CUDA_DIR, "nvinfer_10.dll")
 TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
 BUILD_MODEL_4_BAT = os.path.join(TOOLS_DIR, "build_model_4.bat")
 
-MPV_RELEASE_TAG = "2026-09-03-f5bcfb1954"
-MPV_PRIMARY_URL = f"https://github.com/zhongfly/mpv-winbuild/releases/download/{MPV_RELEASE_TAG}/mpv-x86_64-v3-20260903-git-f5bcfb1954.7z"
-MPV_FALLBACK_URL = "https://github.com/zhongfly/mpv-winbuild/releases/latest/download/mpv-x86_64-v3.7z"
+def resolve_mpv_download_urls():
+    """
+    Dynamically discover the current active MPV release download URLs.
+    zhongfly/mpv-winbuild releases rolling builds daily and prunes releases older than 30 days.
+    This function dynamically discovers the active release asset to prevent 404 deadlinks.
+    """
+    candidates = []
+
+    # Priority 1: GitHub API latest release
+    try:
+        api_url = "https://api.github.com/repos/zhongfly/mpv-winbuild/releases/latest"
+        req = urllib.request.Request(api_url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            for asset in data.get("assets", []):
+                name = asset.get("name", "")
+                if name.startswith("mpv-x86_64-v3-") and not name.startswith("mpv-debug") and not name.startswith("mpv-dev"):
+                    dl_url = asset.get("browser_download_url")
+                    if dl_url and dl_url not in candidates:
+                        candidates.append((dl_url, f"Latest Official Build ({name})"))
+    except Exception:
+        pass
+
+    # Priority 2: HTTP Redirect inspection of /releases/latest
+    try:
+        latest_page = "https://github.com/zhongfly/mpv-winbuild/releases/latest"
+        req = urllib.request.Request(latest_page, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            final_url = resp.geturl()
+            tag = final_url.rstrip("/").split("/")[-1]
+            parts = tag.split("-")
+            if len(parts) >= 4:
+                date_str = parts[0] + parts[1] + parts[2]
+                commit_hash = parts[3]
+                filename = f"mpv-x86_64-v3-{date_str}-git-{commit_hash}.7z"
+                constructed_url = f"https://github.com/zhongfly/mpv-winbuild/releases/download/{tag}/{filename}"
+                if constructed_url not in [c[0] for c in candidates]:
+                    candidates.append((constructed_url, f"Resolved Release Tag ({tag})"))
+    except Exception:
+        pass
+
+    # Priority 3: Hardcoded known active fallback
+    known_fallbacks = [
+        ("https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-10-accb7b2821/mpv-x86_64-v3-20261010-git-accb7b2821.7z", "Current Stable Release (2026-10-10)"),
+    ]
+    for k_url, k_label in known_fallbacks:
+        if k_url not in [c[0] for c in candidates]:
+            candidates.append((k_url, k_label))
+
+    return candidates
+
 
 TENSORRT_001_URL = "https://github.com/AmusementClub/vs-mlrt/releases/download/v15.13.cu13/vsmlrt-windows-x64-cuda.v15.13.cu13.7z.001"
 TENSORRT_002_URL = "https://github.com/AmusementClub/vs-mlrt/releases/download/v15.13.cu13/vsmlrt-windows-x64-cuda.v15.13.cu13.7z.002"
@@ -202,15 +250,29 @@ def check_and_setup_mpv():
         return
 
     print("\n==============================================================================")
-    print(f"    Step 1: Downloading MPV Build ({MPV_RELEASE_TAG})")
+    print("    Step 1: Downloading MPV Build (Auto-Discovering Active Release)")
     print("==============================================================================")
     archive_path = os.path.join(ROOT_DIR, "_tmp_mpv.7z")
 
-    try:
-        download_file_with_resume(MPV_PRIMARY_URL, archive_path, f"Downloading MPV v3 ({MPV_RELEASE_TAG})")
-    except Exception as e:
-        print(f"    Primary download failed: {e}. Trying fallback to latest official build...")
-        download_file_with_resume(MPV_FALLBACK_URL, archive_path, "Downloading MPV (Latest Build)")
+    urls = resolve_mpv_download_urls()
+    download_success = False
+
+    for download_url, label in urls:
+        try:
+            download_file_with_resume(download_url, archive_path, f"Downloading MPV ({label})")
+            download_success = True
+            break
+        except Exception as e:
+            print(f"    Download failed ({e}). Trying next candidate...")
+            if os.path.exists(archive_path + ".part"):
+                try:
+                    os.remove(archive_path + ".part")
+                except Exception:
+                    pass
+
+    if not download_success:
+        raise RuntimeError("Failed to download MPV from all available release sources.")
+
 
     print("\n[*] Extracting MPV archive into mpv/...")
     cmd = [SEVEN_ZIP, "x", archive_path, f"-o{MPV_DIR}", "-aoa"]
